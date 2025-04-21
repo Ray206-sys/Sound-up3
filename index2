@@ -1,0 +1,51 @@
+<script type="text/javascript">
+  const URL = "https://teachablemachine.withgoogle.com/models/-il0knCW0/";
+  let model, recognizer;
+
+  async function init() {
+    const checkpointURL = URL + "model.json";
+    const metadataURL = URL + "metadata.json";
+
+    recognizer = await tmAudio.load(checkpointURL, metadataURL);
+    await recognizer.ensureModelLoaded();
+
+    const labelContainer = document.getElementById("label-container");
+
+    recognizer.listen(result => {
+      const scores = result.scores;
+      const labels = recognizer.wordLabels();
+
+      let maxScore = -1;
+      let maxIndex = -1;
+
+      for (let i = 0; i < scores.length; i++) {
+        if (scores[i] > maxScore) {
+          maxScore = scores[i];
+          maxIndex = i;
+        }
+      }
+
+      labelContainer.innerHTML = `
+        <p><strong>予測:</strong> ${labels[maxIndex]}</p>
+        <p><strong>信頼度:</strong> ${(scores[maxIndex] * 100).toFixed(2)}%</p>
+      `;
+
+      // 🔥 Thunkable にメッセージを送信
+      window.ReactNativeWebView?.postMessage(labels[maxIndex]);
+    }, {
+      overlapFactor: 0.5,
+      probabilityThreshold: 0.5
+    });
+  }
+
+  // 🎤 マイクの許可確認 → OKなら init 実行
+  navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(function(stream) {
+      console.log("マイクアクセス許可されました！");
+      init();
+    })
+    .catch(function(error) {
+      console.log("マイクアクセスが許可されていません:", error);
+    });
+</script>
+
